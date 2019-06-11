@@ -1,0 +1,48 @@
+version: '3'
+
+#volumes:
+#  potter-etc:
+#  potter-var:
+
+services:
+  cowrie:
+    build:
+      context: ./build
+      dockerfile: Dockerfile
+    container_name: cowriepot
+    depends_on: [cowrie-db]
+    entrypoint: cowrie
+    environment:
+      - STDOUT=no
+    command: "start -n"
+    ports:
+      - "2222:2222"
+      - "2223:2223"
+    volumes:
+      - $COWRIE_BASE/$COWRIE_ETC:/cowrie/cowrie-git/etc
+      - $COWRIE_BASE/$COWRIE_VAR:/cowrie/cowrie-git/var
+
+  cowrie-db:
+    image: mariadb:10
+    container_name: cowriedb
+    volumes:
+      - $COWRIE_BASE/$COWRIE_DB:/var/lib/mysql
+      - $COWRIE_BASE/$COWRIE_DB_INIT:/docker-entrypoint-initdb.d
+    environment:
+      - MYSQL_ROOT_PASSWORD=$COWRIE_MYSQL_DB_ROOT_PASSWORD
+      - MYSQL_DATABASE=$COWRIE_MYSQL_DB_NAME
+      - MYSQL_USER=$COWRIE_MYSQL_DB_USER
+      - MYSQL_PASSWORD=$COWRIE_MYSQL_DB_PASSWORD
+
+  kippo-graph:
+    image: wonderfall/kippo-graph
+    container_name: kippog
+    depends_on: [cowrie-db,cowrie]
+    volumes:
+      - $COWRIE_BASE/$COWRIE_KIPPO_GRAPH_CONFIG:/kippo-graph/config.php
+      - $COWRIE_BASE/$COWRIE_VAR/$COWRIE_KIPPO_GRAPH_LOG:/opt/cowrie/log
+    environment:
+      - GID=1000
+      - UID=1000
+    ports:
+      - "8888:8888"
